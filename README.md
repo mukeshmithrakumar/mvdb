@@ -1,4 +1,4 @@
-# Vector Database
+# My Vector Database
 
 This project is to be done at two scales. We will start with a 1 Million Vector database and then move onto 1 Billion. This shifts moves the project from a pure **Algorithmic** problem to a **Systems Engineering** problem (optimizing disk I/O, page alignment, compression).
 
@@ -15,47 +15,41 @@ The industry standard for an **In-Memory** Vector Database is **HNSW (Hierarchic
 Here is a 7-day roadmap for building a high-performance HNSW index in Rust.
 
 **The Baseline Evaluation**
-
 Before writing the custom Rust implementation, we must establish a baseline using existing non-clustered solutions.
- * Candidates: LanceDB, Qdrant (standalone mode), and Faiss (IVF-PQ/DiskANN).
- * Objective: Push these tools vertically until they break to identify whether the limits are conceptual (ANN theory) or implementation-driven (GC pauses, overhead). This "failure analysis" will directly inform the custom Rust architecture.
+* Candidates: LanceDB, Qdrant (standalone mode), and Faiss (IVF-PQ/DiskANN).
+* Objective: Push these tools vertically until they break to identify whether the limits are conceptual (ANN theory) or implementation-driven (GC pauses, overhead). This "failure analysis" will directly inform the custom Rust architecture.
 
-### **The Architecture: HNSW**
+### The Architecture: HNSW
 
 Think of HNSW as a "Skip List" for graphs.
 1. **Layer 0 (Bottom):** Contains every single vector in a dense graph.
 2. **Upper Layers:** Sparse "express lanes." Layer 1 has 50% of the nodes, Layer 2 has 25%, etc.
 3. **Search Logic:** You start at the top layer, zoom across the map with long jumps, drop down a layer, zoom in closer, drop down again, until you reach the bottom for fine-grained search.
 
-### **Required Reading**
+### Required Reading
 
-* **Primary Paper:** *Efficient and Robust Approximate Nearest Neighbor Search using Hierarchical Navigable Small World Graphs* (Malkov & Yashunin, 2016). [Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs](https://arxiv.org/abs/1603.09320)
-  * **Focus on:** Algorithm 1 (Search) and Algorithm 4 (Insertion).
-* **SIMD (Single Instruction, Multiple Data):** You cannot calculate 1 billion or even 1 million distances one-by-one. You need AVX2 or AVX-512 instructions to calculate 8 or 16 distances per CPU cycle.
-  * *Rust Topic:* `std::simd` (portable) or `std::arch` (x86 specific).
+* **Primary Paper:** *Efficient and Robust Approximate Nearest Neighbor Search using Hierarchical Navigable Small World Graphs* (Malkov & Yashunin, 2016). **Focus on:** Algorithm 1 (Search) and Algorithm 4 (Insertion).
+* **SIMD (Single Instruction, Multiple Data):** You cannot calculate 1 billion or even 1 million distances one-by-one. You need AVX2 or AVX-512 instructions to calculate 8 or 16 distances per CPU cycle. *Rust Topic:* `std::simd` (portable) or `std::arch` (x86 specific).
 
-### **7-Day Sprint Plan (In-Memory HNSW)**
+### 7-Day Sprint Plan (In-Memory HNSW)
 
-#### **Phase 1: The Basics (Days 1-2)**
+#### Phase 1: The Basics (Days 1-2)
 
 **Day 1: High-Performance Distance Metrics (SIMD)**
-
 * **Goal:** Even in RAM, comparing 1024 floats is slow. You still need SIMD.
 * **Task:** Implement Dot Product and L2 Distance using `std::simd` or `Simd<f32, 16>`.
 * **Milestone:** A micro-benchmark proving your SIMD distance function is 8x faster than a loop.
 
 **Day 2: The "NSW" (Navigable Small World) - No Hierarchy Yet**
-
 * **Goal:** Build a single-layer graph (Layer 0).
 * **Concept:** A graph where every node connects to its  closest neighbors.
 * **Task:** Implement a struct `Node { vector: Vec<f32>, neighbors: Vec<usize> }`.
 * **Algorithm:** Implement **Greedy Search**. Start at entry point -> look at neighbors -> move to the one closer to query -> repeat.
 * **Milestone:** Insert 10k vectors into a flat graph and search it. (It will be slow, $O(\log N)$ish, but functional).
 
-#### **Phase 2: The HNSW Algorithm (Days 3-5)**
+#### Phase 2: The HNSW Algorithm (Days 3-5)
 
 **Day 3: Adding the Layers (The "H" in HNSW)**
-
 * **Goal:** Implement the multi-layer structure to speed up search.
 * **Logic:**
 * When inserting a vector, flip a coin to decide its "max layer" (exponential decay: most nodes are layer 0, very few are layer 5).
@@ -64,39 +58,35 @@ Think of HNSW as a "Skip List" for graphs.
 * **Milestone:** Search time should drop drastically compared to Day 2.
 
 **Day 4: The Heuristic (heuristic for selecting neighbors)**
-
 * **Goal:** This is the "secret sauce" of HNSW's accuracy.
 * **Concept:** When connecting a node to neighbors, don't just pick the absolute closest ones. Pick ones that are close *and* widely spaced (diverse). This prevents "clustering" and allows the graph to span long distances.
 * **Task:** Implement the `SelectNeighborsHeuristic` from the paper (Algorithm 4).
 * **Milestone:** Accuracy (Recall) improves significantly on your test set.
 
 **Day 5: Concurrency (RwLock & Atomic)**
-
 * **Goal:** Allow simultaneous searches and insertions.
 * **Challenge:** Rust's borrow checker hates graphs (self-referential structures).
 * **Tool:** `parking_lot::RwLock` or `dashmap` (concurrent hashmap).
 * **Task:** Wrap your nodes in `RwLock` or use a concurrent arena allocator so multiple threads can read the graph while one thread inserts.
 * **Milestone:** Run a benchmark with 1 writer thread and 8 reader threads without deadlocks.
 
-#### **Phase 3: Polish (Days 6-7)**
+#### Phase 3: Polish (Days 6-7)
 
 **Day 6: Serialization (Save/Load)**
-
 * **Goal:** Don't rebuild the index every restart.
 * **Tool:** `bincode` or `serde`.
 * **Task:** Serialize the vector data and the neighbor lists to a binary file on disk.
 * **Milestone:** `db.save("index.bin")` and `db.load("index.bin")`.
 
 **Day 7: The Server**
-
 * **Goal:** Make it usable.
 * **Task:** Wrap it in a web server (Axum or Actix-web).
 * **Endpoints:**
-  * `POST /insert { vector: [..] }`
-  * `POST /search { vector: [..], k: 10 }`
+	* `POST /insert { vector: [..] }`
+	* `POST /search { vector: [..], k: 10 }`
 * **Milestone:** A working API you can curl from your terminal.
 
-### **Next Step**
+### Next Step
 
 **"Arena Allocator" pattern** is the standard way to implement graph algorithms like HNSW without fighting the borrow checker (using indices `u32` instead of pointers/references).
 
@@ -110,7 +100,7 @@ This exceeds the RAM of almost any single instance.
 
 To achieve we must build a **Disk-Based Index** (Out-of-Core) algorithm. The State-of-the-Art (SOTA) for this specific constraint is **DiskANN (Vamana graph)**.
 
-### **Core Architecture: The DiskANN Model**
+### Core Architecture: The DiskANN Model
 
 We are building a two-tier system to bypass the RAM limit:
 1. **SSD Layer:** Stores the full-precision vectors and the full Graph Index (Adjacency lists).
@@ -124,31 +114,31 @@ To fit 4TB of vectors on a machine with ~64GB RAM, you will build a two-tier sys
 2. SSD (Storage): Holds the full 4TB of raw vectors and the detailed graph adjacency lists.
 3. Mechanism: You use the RAM index to find candidate neighbors, then issue asynchronous disk reads (io_uring) to fetch full vectors from SSD for the final re-ranking.
 
-### **Preparation: The Syllabus**
+### Preparation: The Syllabus
 
 Before writing code, you must understand these four concepts.
 1. **Memory Mapping (`mmap`) & Async I/O:** How to treat a 4TB file on disk as if it were a slice in memory, or alternatively, how to queue disk reads without blocking the CPU.
     * *Rust Topic:* `memmap2` crate, `io_uring` (Linux).
 2. **Product Quantization (PQ):** How to compress a 4KB vector into 64 bytes to fit the navigation index in RAM.
-  * *Product Quantization for Nearest Neighbor Search* (Hervé Jégou) – [Read mainly for the concept of sub-quantizers].
-  * **Focus on:** How to compress 1024D vectors into small byte codes (e.g., 64 bytes).
-3. **The Vamana Graph:** *DiskANN: Fast Accurate Billion-Point Nearest Neighbor Search on a Single Node* (NeurIPS 2019) – [Read Sections 3 & 4 specifically]. [Paper](https://papers.nips.cc/paper_files/paper/2019/hash/09853c7fb1d3f8ee67a61b6bf4a7f8e6-Abstract.html) 
-  * **Focus on:** The **Vamana** graph construction algorithm and **RobustPrune**.
+	* *Product Quantization for Nearest Neighbor Search* (Hervé Jégou) – [Read mainly for the concept of sub-quantizers].
+	* **Focus on:** How to compress 1024D vectors into small byte codes (e.g., 64 bytes).
+3. **The Vamana Graph:** *DiskANN: Fast Accurate Billion-Point Nearest Neighbor Search on a Single Node* (NeurIPS 2019) – [Read Sections 3 & 4 specifically]. [Paper](https://papers.nips.cc/paper_files/paper/2019/hash/09853c7fb1d3f8ee67a61b6bf4a7f8e6-Abstract.html). [DiskANN Algorithm Explained](https://www.google.com/search?q=https://www.youtube.com/watch%3Fv%3Dd_Z9g6s7l0k) *This video breaks down the DiskANN architecture and Vamana graph specifically for SSD-resident billion-scale datasets.*
+	* **Focus on:** The **Vamana** graph construction algorithm and **RobustPrune**.
 
 **References**
-* Hybrid inverted+disk: **SPANN** (inverted methodology + disk posting lists) [SPANN: Highly-efficient Billion-scale Approximate Nearest Neighbor Search](https://arxiv.org/abs/2111.08566)
+* [ ] Hybrid inverted+disk: **SPANN** (inverted methodology + disk posting lists) [SPANN: Highly-efficient Billion-scale Approximate Nearest Neighbor Search](https://arxiv.org/abs/2111.08566)
 * Production reference designs: **Faiss** design principles (survey-ish, very practical) [docs](https://faiss.ai/index.html), [The Faiss library](https://arxiv.org/abs/2401.08281)
-* Benchmarking landscape: ANN-Benchmarks + BigANN/NeurIPS challenge pages [Billion-Scale Approximate Nearest Neighbor Search Challenge: NeurIPS'21 competition track](https://big-ann-benchmarks.com/neurips21.html), [Info](https://ann-benchmarks.com/index.html)
-* “Recent/SOTA to skim”: PageANN (2025) to see where disk ANNS is heading [Scalable Disk-Based Approximate Nearest Neighbor Search with Page-Aligned Graph](https://arxiv.org/html/2509.25487v1)
-* [DiskANN Algorithm Explained](https://www.google.com/search?q=https://www.youtube.com/watch%3Fv%3Dd_Z9g6s7l0k) *This video breaks down the DiskANN architecture and Vamana graph specifically for SSD-resident billion-scale datasets.*
-* [Supercharge your I/O in Rust with io_uring](https://www.youtube.com/watch?v=IHAPVK1nOrQ) *Relevant because for a disk-based vector database, efficient non-blocking I/O is the critical bottleneck; this video explains how `io_uring` in Rust solves that.*
+* [ ] Benchmarking landscape: ANN-Benchmarks + BigANN/NeurIPS challenge pages [Billion-Scale Approximate Nearest Neighbor Search Challenge: NeurIPS'21 competition track](https://big-ann-benchmarks.com/neurips21.html), [Info](https://ann-benchmarks.com/index.html)
+* [ ] "Recent/SOTA to skim": PageANN (2025) to see where disk ANNS is heading [Scalable Disk-Based Approximate Nearest Neighbor Search with Page-Aligned Graph](https://arxiv.org/abs/2509.25487v2)
+* 
+* [ ] [Supercharge your I/O in Rust with io_uring](https://www.youtube.com/watch?v=IHAPVK1nOrQ) *Relevant because for a disk-based vector database, efficient non-blocking I/O is the critical bottleneck; this video explains how `io_uring` in Rust solves that.*
 
-### **7-Day Sprint Plan**
 
-#### **Phase 1: Foundations & The Math (Days 1-2)**
+### 7-Day Sprint Plan
+
+#### Phase 1: Foundations & The Math (Days 1-2)
 
 **Day 1: Vector Primitives & SIMD**
-
 * **Goal:** Create the fastest possible distance calculation (Dot Product / Euclidean) for 1024D vectors.
 * **Topics:** `std::simd` (portable SIMD), AVX2/AVX-512 intrinsics, Fused Multiply-Add (FMA).
 * **Rust Crates:** `bytemuck` (casting bytes to floats), `rand` (generating dummy data).
@@ -156,30 +146,26 @@ Before writing code, you must understand these four concepts.
 * **Why:** At 1 billion scale, every CPU cycle in the distance function counts.
 
 **Day 2: Quantization (Compression)**
-
 * **Goal:** Compress your 4TB dataset into something that might fit in RAM (or cache).
 * **Topics:** Scalar Quantization (converting `f32` to `u8` or `i8`) and Product Quantization (PQ).
 * **Implementation:** Implement a simple linear scalar quantizer: .
 * **Milestone:** A function that compresses a 1024D `f32` vector (4KB) into a 1024D `u8` vector (1KB) and estimates distance with <5% error.
 
-#### **Phase 2: The Graph Engine (Days 3-5)**
+#### Phase 2: The Graph Engine (Days 3-5)
 
 **Day 3: In-Memory Greedy Search (The Prototype)**
-
 * **Goal:** Build the search logic before adding disk complexity.
 * **Topics:** Greedy Search algorithm. Adjacency lists ( `Vec<Vec<u32>>`).
 * **Task:** Create a random graph of 10k vectors in RAM. Implement a `search(query_vector)` function that starts at a random node and greedily moves to the neighbor closer to the query.
 * **Milestone:** Functioning greedy search finding nearest neighbors in a small in-memory dataset.
 
 **Day 4: The Vamana Construction (RobustPrune)**
-
 * **Goal:** Implement the "secret sauce" of DiskANN.
 * **Algorithm:** The **RobustPrune** step. Unlike HNSW, Vamana prunes edges aggressively to create a high-degree, small-diameter graph that minimizes "hops" (and thus disk reads).
 * **Task:** Implement the logic: "Connect point P to neighbor N *only if* N is not closer to any of P's existing neighbors."
 * **Milestone:** A graph construction script that builds a Vamana graph for 100k vectors.
 
 **Day 5: Disk Layout & Memory Mapping**
-
 * **Goal:** Move data from Heap to SSD.
 * **Topics:** `mmap` (Memory Mapped Files), Page Alignment (4KB).
 * **Rust Crates:** `memmap2`.
@@ -189,17 +175,15 @@ Before writing code, you must understand these four concepts.
     * Use `mmap` to view these files as slices `&[u8]`.
 * **Milestone:** Perform the "Greedy Search" from Day 3, but reading purely from the memory-mapped file on disk.
 
-#### **Phase 3: Optimization & Scale (Days 6-7)**
+#### Phase 3: Optimization & Scale (Days 6-7)
 
 **Day 6: Parallel Build & IO Optimization**
-
 * **Goal:** Speed up indexing and retrieval.
 * **Topics:** Rayon (Data Parallelism), `io_uring` (Async I/O for Linux).
 * **Task:** Use `rayon::par_iter` to parallelize the distance calculations during the build phase. (Note: Building the index for 1B vectors takes *days*; for this week, verify architecture handles 1M+ efficiently).
 * **Milestone:** maximize CPU usage during index build.
 
 **Day 7: The API & The "Billion" Test**
-
 * **Goal:** Interface and final architecture check.
 * **Task:** Wrap the search in a simple gRPC service (`tonic`).
 * **Reality Check:** You won't index 1B vectors in a day. Generate 1B dummy vectors on disk (sparse/zeros to save space if needed, or just calculate the file offsets). Prove your `mmap` logic can seek to the 900-millionth vector and read it without crashing.
@@ -218,24 +202,24 @@ We are targeting the gap between hyperscalers (who have dedicated infrastructure
 **2. Hardware & Vertical Scaling Strategy**
 
 Unlike web-scale search, we are targeting the realistic upper bound for most recommender and retrieval workloads (100M–1B vectors).
- * The Hardware Hypothesis: We assume access to a "beefy" single node (≥512 GB to 2 TB RAM, fast NVMe) rather than a fleet of small instances.
- * No GPUs (Initially): To keep TCO low and deployment simple, we rely purely on CPU (AVX-512) and optimized Disk I/O.
- * The Goal: High Availability (HA) should be achieved via a simple Active/Warm-Standby pair (2 nodes), not a complex distributed mesh.
+* The Hardware Hypothesis: We assume access to a "beefy" single node (≥512 GB to 2 TB RAM, fast NVMe) rather than a fleet of small instances.
+* No GPUs (Initially): To keep TCO low and deployment simple, we rely purely on CPU (AVX-512) and optimized Disk I/O.
+* The Goal: High Availability (HA) should be achieved via a simple Active/Warm-Standby pair (2 nodes), not a complex distributed mesh.
 
 **3. Primary Research Questions**
 
 The implementation must explicitly answer the following to validate the single-node hypothesis:
- * Single-Node Feasibility: What is the true "tipping point" for RAM vs. Recall? (e.g., Can 100M, 300M, or 1B vectors fit before latency degrades unacceptably?)
- * Cost Efficiency: How does the TCO and $/QPS compare to managed services (Vertex, Pinecone) or distributed clusters?
- * Operational Simplicity: Can rebuilds, restarts, and recovery be made deterministic and "boring"?
- * The Cluster Threshold: What specific workload characteristics definitively force a move to multi-node designs?
+* Single-Node Feasibility: What is the true "tipping point" for RAM vs. Recall? (e.g., Can 100M, 300M, or 1B vectors fit before latency degrades unacceptably?)
+* Cost Efficiency: How does the TCO and $/QPS compare to managed services (Vertex, Pinecone) or distributed clusters?
+* Operational Simplicity: Can rebuilds, restarts, and recovery be made deterministic and "boring"?
+* The Cluster Threshold: What specific workload characteristics definitively force a move to multi-node designs?
 
 **4. Non-Goals**
 
 To maintain focus, we explicitly exclude:
- * Infinite Horizontal Scalability: We are not building a system to index the entire internet.
- * Multi-Tenancy: This is a single-tenant system for a specific workload.
- * Kubernetes Orchestration: The system should run as a standard binary/service without requiring a container orchestration platform.
+* Infinite Horizontal Scalability: We are not building a system to index the entire internet.
+* Multi-Tenancy: This is a single-tenant system for a specific workload.
+* Kubernetes Orchestration: The system should run as a standard binary/service without requiring a container orchestration platform.
 
 
 ## References
@@ -274,6 +258,6 @@ To maintain focus, we explicitly exclude:
 * [ ] [Write-Optimized and High-Performance Hashing Index Scheme for Persistent Memory](https://www.usenix.org/conference/osdi18/presentation/zuo)
 * [ ] [FlashShare: Punching Through Server Storage Stack from Kernel to Firmware for Ultra-Low Latency SSDs](https://www.usenix.org/conference/osdi18/presentation/zhang)
 * [ ] [Splinter: Bare-Metal Extensions for Multi-Tenant Low-Latency Storage](https://www.usenix.org/conference/osdi18/presentation/kulkarni)
-* [ ] 
+* [ ] [Billion-scale similarity search with GPUs](https://arxiv.org/abs/1702.08734)
 
 
