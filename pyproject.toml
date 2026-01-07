@@ -1,0 +1,4 @@
+[tool.pyright]
+reportCallIssue = "none"
+# Or to ignore the specific file entirely:
+ignore = ["faiss.ipynb"]

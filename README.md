@@ -224,6 +224,7 @@ To maintain focus, we explicitly exclude:
 
 ## References
 
+**Papers**
 * [ ] [Kids! Use hnswlib for HNSW](https://terencezl.github.io/blog/2022/09/28/kids-use-hnswlib/)
 * [ ] [How We Store and Search 30 Billion Faces](https://www.clearview.ai/post/how-we-store-and-search-30-billion-faces)
 * [ ] [Online clustering: algorithms, evaluation, metrics, application and benchmarking](https://hoanganhngo610.github.io/river-clustering.kdd.2022/)
@@ -258,6 +259,8 @@ To maintain focus, we explicitly exclude:
 * [ ] [Write-Optimized and High-Performance Hashing Index Scheme for Persistent Memory](https://www.usenix.org/conference/osdi18/presentation/zuo)
 * [ ] [FlashShare: Punching Through Server Storage Stack from Kernel to Firmware for Ultra-Low Latency SSDs](https://www.usenix.org/conference/osdi18/presentation/zhang)
 * [ ] [Splinter: Bare-Metal Extensions for Multi-Tenant Low-Latency Storage](https://www.usenix.org/conference/osdi18/presentation/kulkarni)
-* [ ] [Billion-scale similarity search with GPUs](https://arxiv.org/abs/1702.08734)
+
+**Code**
+* [ ] [Benchmarking nearest neighbors](https://github.com/erikbern/ann-benchmarks)
 
 
