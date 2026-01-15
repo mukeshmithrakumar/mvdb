@@ -224,6 +224,30 @@ To maintain focus, we explicitly exclude:
 
 ## References
 
+**Code**
+* [ ] [MTEB: Massive Text Embedding Benchmark](https://huggingface.co/blog/mteb)
+* [ ] [Reveal Hidden Pitfalls and Navigate Next Generation of Vector Similarity Search from Task-Centric Views](https://huggingface.co/papers/2512.12980)
+* [ ] [Iceberg: Task-Centric Benchmarks for Vector Similarity Search](https://huggingface.co/datasets/PIIR/Iceberg-dataset)
+* [ ] [Benchmarks of approximate nearest neighbor libraries in Python](https://github.com/erikbern/ann-benchmarks)
+* [ ] [Framework for evaluating ANNS algorithms on billion scale datasets](https://github.com/harsha-simhadri/big-ann-benchmarks)
+* [ ] [Benchmarking nearest neighbors](https://github.com/erikbern/ann-benchmarks)
+* [ ] [Benchmarks for Billion-Scale Similarity Search](https://research.yandex.com/blog/benchmarks-for-billion-scale-similarity-search)
+* [ ] [Billion-Scale Approximate Nearest Neighbor Search Challenge: NeurIPS'21 competition track](https://big-ann-benchmarks.com/neurips21.html)
+* [ ] [Neural Search in Action](https://matsui528.github.io/cvpr2023_tutorial_neural_search/)
+* [ ] [Puffer - High-Performance Vector Database](https://github.com/harishsg993010/open-puffer)
+* [ ] [TurboPuffer: Object Storage-First Vector Database Architecture](https://567-labs.github.io/systematically-improving-rag/talks/turbopuffer-engine/)
+* [ ] [RAG on Everything with LEANN. Enjoy 97% storage savings while running a fast, accurate, and 100% private RAG application on your personal device.](https://github.com/yichuan-w/LEANN)
+
+
+**Blogs**
+* [ ] [Introduction to SIMD programming in pure Rust](https://kerkour.com/introduction-rust-simd)
+* [ ] [How to Build a Database without a Server](https://www.infoq.com/presentations/arcticdb-db-no-server/)
+* [ ] [CPU Optimized Embeddings with 🤗 Optimum Intel and fastRAG](https://huggingface.co/blog/intel-fast-embedding)
+* [ ] [Binary and Scalar Embedding Quantization for Significantly Faster & Cheaper Retrieval](https://huggingface.co/blog/embedding-quantization)
+* [ ] [HNSW at Scale: Why Your RAG System Gets Worse as the Vector Database Grows](https://towardsdatascience.com/hnsw-at-scale-why-your-rag-system-gets-worse-as-the-vector-database-grows/)
+* [ ] [Scaling HNSWs](https://antirez.com/news/156)
+
+
 **Papers**
 * [ ] [Kids! Use hnswlib for HNSW](https://terencezl.github.io/blog/2022/09/28/kids-use-hnswlib/)
 * [ ] [How We Store and Search 30 Billion Faces](https://www.clearview.ai/post/how-we-store-and-search-30-billion-faces)
@@ -259,13 +283,15 @@ To maintain focus, we explicitly exclude:
 * [ ] [Write-Optimized and High-Performance Hashing Index Scheme for Persistent Memory](https://www.usenix.org/conference/osdi18/presentation/zuo)
 * [ ] [FlashShare: Punching Through Server Storage Stack from Kernel to Firmware for Ultra-Low Latency SSDs](https://www.usenix.org/conference/osdi18/presentation/zhang)
 * [ ] [Splinter: Bare-Metal Extensions for Multi-Tenant Low-Latency Storage](https://www.usenix.org/conference/osdi18/presentation/kulkarni)
+* [ ] [ZERO Results Problem on Vector DBs: Qdrant’s ACORN Algorithm Fixes the Broken Filter Problem](https://blog.stackademic.com/zero-results-problem-on-vector-dbs-qdrants-acorn-algorithm-fixes-the-broken-filter-problem-b2623b765267)
+* [ ] [Fast Approximate Nearest Neighbor Search With The Navigating Spreading-out Graph](https://arxiv.org/abs/1707.00143)
+* [ ] [SVFusion: A CPU-GPU Co-Processing Architecture for Large-Scale Real-Time Vector Search](https://arxiv.org/abs/2601.08528)
+* [ ] [Towards Building efficient Routed systems for Retrieval](https://arxiv.org/abs/2601.06389)
 
 
 **Videos**
 * [ ] [Internet-Scale Semantic, Structural, and Text Search in Real Time by Ash Vardanian](https://youtu.be/yn87sxRsOj0?si=UkeRLD770MfRHnQI)
 
 
-**Code**
-* [ ] [Benchmarking nearest neighbors](https://github.com/erikbern/ann-benchmarks)
 
 
