@@ -260,6 +260,11 @@ To maintain focus, we explicitly exclude:
 * [ ] [FlashShare: Punching Through Server Storage Stack from Kernel to Firmware for Ultra-Low Latency SSDs](https://www.usenix.org/conference/osdi18/presentation/zhang)
 * [ ] [Splinter: Bare-Metal Extensions for Multi-Tenant Low-Latency Storage](https://www.usenix.org/conference/osdi18/presentation/kulkarni)
 
+
+**Videos**
+* [ ] [Internet-Scale Semantic, Structural, and Text Search in Real Time by Ash Vardanian](https://youtu.be/yn87sxRsOj0?si=UkeRLD770MfRHnQI)
+
+
 **Code**
 * [ ] [Benchmarking nearest neighbors](https://github.com/erikbern/ann-benchmarks)
 
